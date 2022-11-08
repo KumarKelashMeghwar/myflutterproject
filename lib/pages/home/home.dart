@@ -1,8 +1,13 @@
 import 'dart:convert';
+import 'package:convex_bottom_bar/convex_bottom_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:loading_overlay/loading_overlay.dart';
+import 'package:mybook/pages/provider/username.dart';
 import 'package:mybook/pages/tambahdata/add.dart';
+import 'package:provider/provider.dart';
 
 class Home extends StatefulWidget {
   static String routesName = '/home';
@@ -14,7 +19,9 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   List<dynamic> name = [];
+  bool isLoading = false;
   var deletionMsg = "";
+  var username = "";
   @override
   void initState() {
     super.initState();
@@ -24,7 +31,11 @@ class _HomeState extends State<Home> {
   }
 
   Future _getDataDB() async {
+    setState(() {
+      isLoading = true;
+    });
     var baseURL = "http://10.0.2.2:3400/gettasks";
+
     try {
       var result = await http.post(
         Uri.parse(baseURL),
@@ -33,15 +44,26 @@ class _HomeState extends State<Home> {
         var val = jsonDecode(result.body);
 
         setState(() {
-          name = val['data'];
+          if (val == "tasks not found!") {
+            name = [];
+          } else {
+            name = val['data'];
+          }
         });
       }
     } catch (e) {
       Future.error(e);
+      print(e.toString());
     }
+    setState(() {
+      isLoading = false;
+    });
   }
 
-  Future _delete(context) async {
+  Future<String?> _delete(context) async {
+    setState(() {
+      isLoading = true;
+    });
     var baseURL = "http://10.0.2.2:3400/deletetask";
     try {
       var result = await http.post(Uri.parse(baseURL),
@@ -49,46 +71,103 @@ class _HomeState extends State<Home> {
             "id": context,
           }),
           headers: {"content-type": "application/json"});
-
       setState(() {
-        _getDataDB();
-        deletionMsg = jsonDecode(result.body);
+        deletionMsg = result.body;
       });
+      await _getDataDB();
+      return deletionMsg;
     } catch (e) {
       Future.error(e);
+      print("Exception Delete :$e");
     }
+    setState(() {
+      isLoading = false;
+    });
+    return deletionMsg;
   }
 
   @override
   Widget build(BuildContext context) {
+    final arguments = (ModalRoute.of(context)?.settings.arguments ??
+        <String, dynamic>{}) as Map;
+    setState(() {
+      if (arguments.isEmpty) {
+        username = "Kelash";
+      } else {
+        username = arguments['username'];
+      }
+    });
     return Scaffold(
-      body: name.isNotEmpty
-          ? viewDB()
-          : Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "No Data Available",
-                    style: GoogleFonts.montserrat(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
+        bottomNavigationBar: ConvexButton.fab(
+          onTap: () {
+            Navigator.pushReplacementNamed(context, Add.routesName);
+          },
+          icon: Icons.add,
+          color: Colors.white,
+          backgroundColor: Colors.purple,
+          top: 50,
+          thickness: 7,
+        ),
+        body: LoadingOverlay(
+          isLoading: isLoading,
+          progressIndicator: SpinKitChasingDots(
+            itemBuilder: (BuildContext context, int index) {
+              return DecoratedBox(
+                decoration: BoxDecoration(
+                  color: index.isEven ? Colors.red : Colors.green,
+                ),
+              );
+            },
+          ),
+          child: !isLoading
+              ? viewDB()
+              : Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
+                      Text(
+                        "Loading...",
+                        style: GoogleFonts.montserrat(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-    );
+                ),
+        ));
   }
 
   viewDB() {
-    return SingleChildScrollView(
+    return SafeArea(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          Align(
+            alignment: Alignment.topRight,
+            child: Container(
+              padding: const EdgeInsets.only(right: 10.0, top: 10),
+              width: 120,
+              child: Column(children: [
+                const Align(
+                  alignment: Alignment.centerRight,
+                  child: CircleAvatar(
+                    backgroundColor: Colors.purple,
+                    child: Icon(Icons.person, color: Colors.white),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  "Hey, ${username.replaceAll(' ', '')}!",
+                  style: const TextStyle(fontSize: 20),
+                )
+              ]),
+            ),
+          ),
           Container(
             margin: EdgeInsets.only(
-              top: MediaQuery.of(context).size.height * 0.3,
+              top: MediaQuery.of(context).size.height * 0.07,
             ),
             child: Text(
               "To Do List",
@@ -98,84 +177,116 @@ class _HomeState extends State<Home> {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(
-              left: 30,
-              right: 30,
-            ),
-            child: ListView.builder(
-              itemCount: name.length,
-              shrinkWrap: true,
-              itemBuilder: (BuildContext context, int index) {
-                return Row(
-                  children: [
-                    Text(
-                      name[index]['name'],
-                      style: GoogleFonts.montserrat(
-                        fontSize: 20,
-                      ),
-                    ),
-                    const SizedBox(
-                      width: 40,
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        _delete(name[index]['_id']);
-                        showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return Dialog(
-                                child: Container(
-                                  width: 100,
-                                  height: 200,
-                                  color: Colors.orange,
-                                  child: Center(
-                                    child: Text(
-                                      deletionMsg,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            });
-                      },
-                      child: Text(
-                        "Delete",
-                        style: GoogleFonts.montserrat(
-                          fontSize: 16,
-                          color: Colors.red,
+          const SizedBox(height: 10),
+          Expanded(
+            child: !isLoading && name.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "No Data Available!",
+                          style: GoogleFonts.montserrat(
+                            fontSize: 25,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                          ),
                         ),
-                        maxLines: 1,
-                      ),
+                      ],
                     ),
-                  ],
-                );
-              },
-            ),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.only(
+                      left: 30,
+                      right: 30,
+                    ),
+                    child: ListView.builder(
+                      itemCount: name.length,
+                      // shrinkWrap: true,
+                      itemBuilder: (BuildContext context, int index) {
+                        return Card(
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          margin: const EdgeInsets.symmetric(vertical: 5),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: ListTile(
+                              title: Text(
+                                name[index]['name'],
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 20,
+                                ),
+                              ),
+                              trailing: GestureDetector(
+                                onTap: () async {
+                                  final msg = await _delete(name[index]['_id']);
+                                  if (msg != null) {
+                                    showDialog(
+                                        context: this.context,
+                                        builder: (BuildContext context) {
+                                          Future.delayed(
+                                              Duration(milliseconds: 1500), () {
+                                            Navigator.pop(context);
+                                          });
+                                          return Container(
+                                            width: 100,
+                                            height: 200,
+                                            margin: EdgeInsets.symmetric(
+                                              vertical: MediaQuery.of(context)
+                                                      .size
+                                                      .height *
+                                                  0.38,
+                                              horizontal: MediaQuery.of(context)
+                                                      .size
+                                                      .width *
+                                                  0.15,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.purple,
+                                              borderRadius:
+                                                  BorderRadius.circular(15),
+                                            ),
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.all(5.0),
+                                              child: Center(
+                                                child: Text(
+                                                  msg,
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.bold,
+                                                    decoration:
+                                                        TextDecoration.none,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        });
+                                  }
+                                },
+                                child: Text(
+                                  "Delete",
+                                  style: GoogleFonts.montserrat(
+                                    fontSize: 16,
+                                    color: Colors.red,
+                                  ),
+                                  maxLines: 1,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
           ),
           const SizedBox(
             height: 40,
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pushReplacementNamed(context, Add.routesName);
-            },
-            style: ElevatedButton.styleFrom(
-              shape: const CircleBorder(),
-              fixedSize: const Size(50, 50),
-              shadowColor: Colors.transparent,
-              backgroundColor: const Color(0xFF80489C),
-            ),
-            child: const Icon(
-              IconData(
-                0xe047,
-                fontFamily: 'MaterialIcons',
-              ),
-            ),
           ),
         ],
       ),

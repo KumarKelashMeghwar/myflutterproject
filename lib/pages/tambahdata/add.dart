@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:convex_bottom_bar/convex_bottom_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
@@ -45,6 +46,7 @@ class _AddState extends State<Add> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+     
       backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.symmetric(
@@ -81,7 +83,11 @@ class _AddState extends State<Add> {
                       ),
                       ElevatedButton(
                         onPressed: () {
-                          _addData();
+                          if (_addKey.currentState!.validate()) {
+                            _addData();
+                          } else {
+                            print("Validation failed!");
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                             fixedSize: const Size(
@@ -117,10 +123,17 @@ class _AddState extends State<Add> {
   _inputName() {
     return SizedBox(
       width: MediaQuery.of(context).size.width,
-      height: MediaQuery.of(context).size.height * 0.07,
+      height: MediaQuery.of(context).size.height * 0.1,
       child: TextFormField(
         controller: nameController,
+        validator: (val) {
+          if (val == null || val.isEmpty) {
+            return "please enter something";
+          }
+          return null;
+        },
         keyboardType: TextInputType.text,
+        autofocus: true,
         decoration: InputDecoration(
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),

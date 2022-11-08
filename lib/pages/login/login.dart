@@ -1,10 +1,10 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mybook/pages/home/home.dart';
-import 'package:get/get.dart';
+import 'package:mybook/pages/provider/username.dart';
+import 'package:provider/provider.dart';
 
 class Login extends StatefulWidget {
   static String routesName = '/login';
@@ -14,7 +14,7 @@ class Login extends StatefulWidget {
   State<Login> createState() => _LoginState();
 }
 
-class _LoginState extends State<Login> {
+class _LoginState extends State<Login> with ChangeNotifier {
   final _loginKey = GlobalKey<FormState>();
   final username = TextEditingController();
   final password = TextEditingController();
@@ -29,7 +29,12 @@ class _LoginState extends State<Login> {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         // ignore: use_build_context_synchronously
-        Navigator.pushNamed(context, Home.routesName);
+        Navigator.pushNamed(
+          context,
+          Home.routesName,
+          arguments: {'username': username.text},
+        );
+        notifyListeners();
       } else {
         return Future.error("Server error");
       }
