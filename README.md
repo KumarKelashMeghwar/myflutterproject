@@ -1,5 +1,3 @@
-Simple Flutter To Do List
+##Todo List App
 
-Try to use CRUD Feature in this app.
-
-Can be improvised more for better UI
+Simple to do list app using flutter and node js as backend
