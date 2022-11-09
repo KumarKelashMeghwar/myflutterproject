@@ -33,7 +33,7 @@ class _SplashState extends State<Splash> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              "This Is Splash",
+              "19SW28 - 19SW30",
               textAlign: TextAlign.center,
               style: GoogleFonts.montserrat(
                 color: Colors.black54,

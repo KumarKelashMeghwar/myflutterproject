@@ -5,9 +5,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:loading_overlay/loading_overlay.dart';
-import 'package:mybook/pages/provider/username.dart';
 import 'package:mybook/pages/tambahdata/add.dart';
-import 'package:provider/provider.dart';
 
 class Home extends StatefulWidget {
   static String routesName = '/home';
@@ -114,7 +112,7 @@ class _HomeState extends State<Home> {
             itemBuilder: (BuildContext context, int index) {
               return DecoratedBox(
                 decoration: BoxDecoration(
-                  color: index.isEven ? Colors.red : Colors.green,
+                  color: index.isEven ? Colors.purple : Colors.amber,
                 ),
               );
             },
@@ -159,7 +157,7 @@ class _HomeState extends State<Home> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  "Hey, ${username.replaceAll(' ', '')}!",
+                  "Hi,${username.replaceAll(' ', '')}",
                   style: const TextStyle(fontSize: 20),
                 )
               ]),
